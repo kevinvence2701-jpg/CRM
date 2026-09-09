@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leads CRM Kevin </title>
+    <!-- FontAwesome untuk Icon User, Lock, & Camera -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #183354 0%, #081627 60%, #030a14 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Ambient Glow Efek Cahaya Latar Belakang */
+        .bg-glow-left {
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            background: #00d2ff;
+            filter: blur(130px);
+            opacity: 0.25;
+            top: 20%;
+            left: 15%;
+            border-radius: 50%;
+        }
+
+        .bg-glow-right {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: #0052d4;
+            filter: blur(120px);
+            opacity: 0.3;
+            bottom: 20%;
+            right: 15%;
+            border-radius: 50%;
+        }
+
+        /* Glassmorphism Card Container */
+        .login-card {
+            position: relative;
+            width: 360px;
+            padding: 45px 35px;
+            background: rgba(15, 35, 60, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: 1px solid rgba(0, 212, 255, 0.35);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5),
+                        inset 0 0 15px rgba(0, 212, 255, 0.15),
+                        0 0 25px rgba(0, 162, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* Avatar Icon Kamera Bulat */
+        .avatar-circle {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 212, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 35px;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3),
+                        inset 0 0 10px rgba(0, 212, 255, 0.2);
+            color: #00d2ff;
+            font-size: 34px;
+        }
+
+        /* Form & Input Groups */
+        .form-container {
+            width: 100%;
+        }
+
+        .input-group {
+            width: 100%;
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7bb5e3;
+            font-size: 15px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            background: rgba(8, 25, 48, 0.75);
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            border-radius: 8px;
+            outline: none;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input::placeholder {
+            color: #638cb5;
+        }
+
+        .input-group input:focus {
+            border-color: #00d2ff;
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.4);
+            background: rgba(10, 32, 60, 0.9);
+        }
+
+        /* Checkbox & Forgot Password */
+        .options {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #7ba2c7;
+            margin-bottom: 28px;
+            margin-top: 5px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .remember-me input {
+            accent-color: #00d2ff;
+            cursor: pointer;
+        }
+
+        .forgot-pw {
+            color: #7ba2c7;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-pw:hover {
+            color: #00d2ff;
+            text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+        }
+
+        /* TOMBOL LOGIN & ANIMASI PERUBAHAN WARNA */
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #092c4c 0%, #0052d4 50%, #00a2ff 100%);
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 100, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Hover State */
+        .login-btn:hover {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.7);
+            transform: translateY(-1px);
+        }
+
+        /* Active / Efek Tekan Fisik saat diklik */
+        .login-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* WARNA BARU SAAT TOMBOL DITEKAN (Diaktifkan via JavaScript) */
+        .login-btn.pressed-cyan {
+            background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
+            color: #021329 !important;
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.9) !important;
+        }
+
+        .login-btn.pressed-success {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%) !important;
+            color: #012415 !important;
+            box-shadow: 0 0 30px rgba(56, 239, 125, 0.9) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Light Effects Background -->
+    <div class="bg-glow-left"></div>
+    <div class="bg-glow-right"></div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+        <!-- Avatar Camera Icon -->
+        <div class="avatar-circle">
+            <i class="fa-solid fa-camera"></i>
+        </div>
+
+        <!-- Form Input -->
+        <form class="form-container" onsubmit="event.preventDefault();">
+            <div class="input-group">
+                <i class="fa-solid fa-user"></i>
+                <input type="text" placeholder="Username" required>
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" placeholder="••••••••••••" required>
+            </div>
+
+            <div class="options">
+                <label class="remember-me">
+                    <input type="checkbox"> Remember me
+                </label>
+                <a href="#" class="forgot-pw">Forgot Password?</a>
+            </div>
+
+            <!-- Tombol Login -->
+            <button type="submit" id="loginBtn" class="login-btn">LOGIN</button>
+        </form>
+    </div>
+
+    <!-- JavaScript Interaktif -->
+    <script>
+        const loginBtn = document.getElementById('loginBtn');
+
+        loginBtn.addEventListener('click', function() {
+            // 1. Ubah warna menjadi Cyan Glow menyala saat ditekan
+            loginBtn.classList.add('pressed-cyan');
+            loginBtn.innerHTML = 'AUTHENTICATING...';
+
+            // 2. Setelah 1 detik (simulasi verifikasi), ubah ke warna Hijau Neon (Success)
+            setTimeout(() => {
+                loginBtn.classList.remove('pressed-cyan');
+                loginBtn.classList.add('pressed-success');
+                loginBtn.innerHTML = 'SUCCESS!';
+            }, 1000);
+
+            // 3. Reset kembali ke warna semula setelah 3 detik
+            setTimeout(() => {
+                loginBtn.classList.remove('pressed-success');
+                loginBtn.innerHTML = 'LOGIN';
+            }, 3000);
+        });
+    </script>
+
+    <!-- 1. Panggil Library Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Logika Login Supabase -->
+    <!-- 1. Panggil Library Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Logika Login Supabase -->
+    <script>
+        const SUPABASE_URL = "https://eqvkslzhycfujrkbcxgp.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_IrkPRTFSy-YPI3-_g6IniA_jSWTxwvv";
+        
+        // Menggunakan nama variabel supabaseClient agar tidak bentrok
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.querySelector("form").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            
+            // Mengambil input pertama (email) dan input kedua (password)
+            const inputs = document.querySelectorAll("input");
+            const emailInput = inputs[0].value;
+            const passwordInput = inputs[1].value;
+
+            // Proses autentikasi
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: emailInput,
+                password: passwordInput,
+            });
+
+            if (error) {
+                alert("Login Gagal: " + error.message);
+            } else {
+                alert("Login Berhasil! Selamat datang.");
+                window.location.href = "Dashboard.html";
+            }
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>
+
+</body>
+</html>
+</body>
+</html>
