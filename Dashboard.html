@@ -1059,10 +1059,6 @@
 
     <!-- JAVASCRIPT CHARTS & TOGGLE RESPONSIVE -->
     <script>
-        // Bypasser aman biar tidak crash
-var ctxDonut = null;
-var ctxBar = null;
-var ctxLine = null;
         // Toggle Sidebar Mobile
         const mobileToggle = document.getElementById('mobileToggle');
         const sidebar = document.getElementById('sidebar');
@@ -1070,22 +1066,26 @@ var ctxLine = null;
         mobileToggle.addEventListener('click', () => {
             sidebar.classList.toggle('active');
         });
+// Deklarasikan ctxDonut dengan aman pakai ?. agar tidak crash jika canvas tidak ada
+const ctxDonut = document.getElementById('sourceDonutChart')?.getContext('2d');
+if (ctxDonut) {
+    new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [48, 33, 19],
+                backgroundColor: ['#4f46e5', '#3b82f6', '#cbd5e1'],
+                borderWidth: 0
+            }]
+        },
+        options: { cutout: '75%', plugins: { legend: { display: false } } }
+    });
+}
 
-        new Chart(ctxDonut, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [48, 33, 19],
-                    backgroundColor: ['#4f46e5', '#3b82f6', '#cbd5e1'],
-                    borderWidth: 0
-                }]
-            },
-            options: { cutout: '75%', plugins: { legend: { display: false } } }
-        });
-
-        // 3. Visitors Bar Chart
-        const ctxBar = document.getElementById('visitorsBarChart').getContext('2d');
-        new Chart(ctxBar, {
+// 3. Visitors Bar Chart
+const ctxBar = document.getElementById('visitorsBarChart')?.getContext('2d');
+if (ctxBar) {
+    new Chart(ctxBar, {
             type: 'bar',
             data: {
                 labels: ['1', '2', '3', '4', '5', '6', '7'],
