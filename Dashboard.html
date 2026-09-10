@@ -742,11 +742,11 @@
             <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)">
         </th>
         <th style="padding: 12px;">NAMA LENGKAP</th>
+        <th style="padding: 12px;">EMAIL</th>
         <th style="padding: 12px;">NO. HP</th>
         <th style="padding: 12px;">SUMBER</th>
         <th style="padding: 12px;">PENANGGUNG JAWAB</th>
         <th style="padding: 12px;">STATUS</th>
-        <th style="padding: 12px;">NEXT FOLLOW-UP</th>
         <th style="padding: 12px;">CATATAN</th>
         <th style="padding: 12px;">AKSI</th>
     </tr>
@@ -985,13 +985,14 @@
         <div style="margin-bottom: 16px; background: #f9fafb; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb;">
             <textarea id="newLogInput" placeholder="Tulis hasil chat/telepon follow-up di sini..." style="width: 100%; height: 60px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; outline: none;"></textarea>
             <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                <button onclick="submitNewLog()" style="background: #8b5cf6; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">+ Simpan Catatan</button>
+                <button type="button" onclick="saveLeadLog()" style="background: #7c3aed; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+    + Simpan Catatan</button>
             </div>
         </div>
 
         <!-- Container Timeline Histori -->
         <div style="font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px;">Timeline Interaksi:</div>
-        <div id="logTimelineContainer" style="overflow-y: auto; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
+        <div id="timelineList" style="overflow-y: auto; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
             <div style="text-align: center; color: #9ca3af; padding: 16px;">Memuat riwayat...</div>
         </div>
 
@@ -1356,8 +1357,7 @@ function updateDashboardStats(leads) {
                 const safeEmail = (lead.email || '').replace(/'/g, "\\'");
                 const safePhone = (lead.phone || '').replace(/'/g, "\\'");
                 const safeSource = (lead.source || '').replace(/'/g, "\\'");
-                const safeNotes = (lead.notes || '').replace(/'/g, "\\'");
-                const safeNextFollowup = lead.next_followup || '';
+                const safeNotes = (lead.note || lead.notes || '').replace(/'/g, "\\'");
 
                 // Cari Nama Penanggung Jawab
                 const assignedUser = teamMembers.find(m => m.id === lead.assigned_to);
@@ -1374,21 +1374,6 @@ function updateDashboardStats(leads) {
                 };
                 const currentColor = statusColors[lead.lead_status] || '#6b7280';
 
-                // BADGE NEXT FOLLOW-UP
-                let followupBadge = '<span style="color: #9ca3af; font-size: 12px;">-</span>';
-                if (lead.next_followup) {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const targetDateStr = lead.next_followup;
-
-                    if (targetDateStr < todayStr && !['Deal', 'Lost'].includes(lead.lead_status)) {
-                        followupBadge = `<span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">⚠️ ${targetDateStr} (Lewat)</span>`;
-                    } else if (targetDateStr === todayStr && !['Deal', 'Lost'].includes(lead.lead_status)) {
-                        followupBadge = `<span style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">🔔 Hari Ini</span>`;
-                    } else {
-                        followupBadge = `<span style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">📅 ${targetDateStr}</span>`;
-                    }
-                }
-
                 // WhatsApp Link
                 const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
                 const waPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
@@ -1401,7 +1386,9 @@ function updateDashboardStats(leads) {
                         </td>
                         <td style="padding: 14px 12px; font-weight: 600; color: #111827;">
                             ${lead.full_name || 'Tanpa Nama'}
-                            <div style="font-size: 12px; font-weight: 400; color: #6b7280;">${lead.email || '-'}</div>
+                        </td>
+                        <td style="padding: 14px 12px; font-size: 13px; color: #4b5563;">
+                            ${lead.email || '-'}
                         </td>
                         <td style="padding: 14px 12px; font-size: 13px;">
                             ${lead.phone || '-'} ${waBtn}
@@ -1424,16 +1411,13 @@ function updateDashboardStats(leads) {
                                 <option value="Lost" ${lead.lead_status === 'Lost' ? 'selected' : ''}>🔴 Lost</option>
                             </select>
                         </td>
-                        <td style="padding: 14px 12px;">
-                            ${followupBadge}
-                        </td>
                         <td style="padding: 14px 12px; font-size: 13px; color: #4b5563; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNotes}">
-                            ${lead.notes || '-'}
+                            ${lead.note || lead.notes || '-'}
                         </td>
                         <td style="padding: 14px 12px;">
                             <div style="display: flex; gap: 6px;">
                                 <button type="button" onclick="openLogsModal('${lead.id}', '${safeName}')" style="background: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">📑 Riwayat</button>
-                                <button type="button" onclick="openEditLeadModal('${lead.id}', '${safeName}', '${safeEmail}', '${safePhone}', '${safeSource}', '${safeNotes}', '${safeNextFollowup}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Edit</button>
+                                <button type="button" onclick="openEditLeadModal('${lead.id}', '${safeName}', '${safeEmail}', '${safePhone}', '${safeSource}', '${safeNotes}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Edit</button>
                                 ${isAdminOrManager ? `<button type="button" onclick="deleteLead('${lead.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>` : ''}
                             </div>
                         </td>
@@ -1603,30 +1587,76 @@ function openEditLeadModal(id, name, email, phone, source, notes, nextFollowup) 
 
         const addLeadForm = document.getElementById('addLeadForm');
 
-addLeadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+if (addLeadForm) {
+    addLeadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    const fullName = document.getElementById('leadName').value;
-    const email = document.getElementById('leadEmail').value;
-    const phone = document.getElementById('leadPhone').value;
-    const source = document.getElementById('leadSource').value;
-    const notes = document.getElementById('leadNotes').value;
+        const fullName = document.getElementById('leadName')?.value || '';
+        const email = document.getElementById('leadEmail')?.value || '';
+        const phone = document.getElementById('leadPhone')?.value || '';
+        const source = document.getElementById('leadSource')?.value || '';
+        const noteValue = document.getElementById('leadNotes')?.value || '';
 
-    // ⚡ 1. TARIK NILAI TANGGAL DARI INPUT MODAL
-    const nextFollowup = document.getElementById('leadNextFollowupInput').value;
+        // Kirim 'note' DAN 'notes' sekaligus biar aman dengan skema Supabase apa pun
+        const payload = {
+            full_name: fullName,
+            email: email,
+            phone: phone,
+            source: source,
+            note: noteValue,
+            notes: noteValue
+        };
 
-    // ⚡ 2. MASUKKAN 'next_followup' KE DALAM PAYLOAD
-    const payload = {
-        full_name: fullName,
-        email: email,
-        phone: phone,
-        source: source,
-        notes: notes,
-        next_followup: nextFollowup || null // 👈 Kirim tanggal atau null jika kosong
-    };
+        try {
+            if (typeof editingLeadId !== 'undefined' && editingLeadId) {
+                // UPDATE DATA
+                const { error } = await supabaseClient
+                    .from('leads')
+                    .update(payload)
+                    .eq('id', editingLeadId);
 
-    // ... proses insert / update ke Supabase ...
-});
+                if (error) {
+                    // Fallback jika salah satu kolom gak ada di DB
+                    delete payload.notes;
+                    const { error: err2 } = await supabaseClient
+                        .from('leads')
+                        .update(payload)
+                        .eq('id', editingLeadId);
+                    if (err2) throw err2;
+                }
+            } else {
+                // INSERT DATA BARU
+                payload.lead_status = 'New';
+                const { error } = await supabaseClient
+                    .from('leads')
+                    .insert([payload]);
+
+                if (error) throw error;
+            }
+
+            // 1. Reset ID Edit & Form
+            editingLeadId = null;
+            addLeadForm.reset();
+
+            // 2. Tutup Modal
+            const modal = document.getElementById('addLeadModal');
+            if (modal) modal.style.display = 'none';
+
+            // 3. PAKSA REFRESH DATA TABEL SEKETIKA
+            if (typeof fetchLeads === 'function') {
+                await fetchLeads();
+            } else {
+                location.reload(); // Fallback reload jika fungsi fetchLeads tidak terdeteksi
+            }
+
+            alert('Data lead berhasil diperbarui!');
+
+        } catch (err) {
+            console.error('Gagal menyimpan lead:', err);
+            alert('Gagal menyimpan data: ' + err.message);
+        }
+    });
+}
 
         async function updateLeadStatus(leadId, newStatus) {
     // ... kodingan update Supabase lo ...
@@ -1801,49 +1831,115 @@ async function processCSVImport() {
         }
 
         // 3. Tarik Data Logs dari Supabase
-        async function fetchLeadLogs(leadId) {
-            const container = document.getElementById('logTimelineContainer');
-            if (!container) return;
-            
-            container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 12px;">Memuat riwayat...</div>`;
+        // Tarik Data Riwayat dari Supabase (Aman dari Bug Red Text)
+// 1. Tarik Data Riwayat
+async function fetchLeadLogs(leadId) {
+    if (!leadId) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('lead_logs')
+            .select('*')
+            .eq('lead_id', leadId)
+            .order('created_at', { ascending: false });
 
-            const { data: logs, error } = await supabaseClient
+        if (error) throw error;
+        renderLogsList(data || []);
+    } catch (err) {
+        console.warn('Gagal fetch log, mencoba fallback:', err);
+        renderLogsList([]);
+    }
+}
+
+// 2. Simpan Catatan Baru (Multi-Column Fallback)
+async function saveLeadLog() {
+    const logInput = document.querySelector('#logModal textarea');
+    const content = logInput ? logInput.value.trim() : '';
+
+    if (!content) {
+        alert('Tulis catatan terlebih dahulu!');
+        return;
+    }
+
+    if (!currentLogLeadId) {
+        alert('ID Lead tidak ditemukan!');
+        return;
+    }
+
+    try {
+        // Coba insert dengan skema umum (content / notes / note / message)
+        let { error } = await supabaseClient
+            .from('lead_logs')
+            .insert([{ lead_id: currentLogLeadId, content: content }]);
+
+        if (error) {
+            // Fallback 1: Coba nama kolom 'notes'
+            let res1 = await supabaseClient
                 .from('lead_logs')
-                .select('*')
-                .eq('lead_id', leadId)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                container.innerHTML = `<div style="color: #ef4444; font-size: 12px; text-align: center;">Gagal memuat catatan.</div>`;
-                return;
-            }
-
-            if (!logs || logs.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: #9ca3af; padding: 16px; font-size: 12px;">Belum ada riwayat follow-up.</div>`;
-                return;
-            }
-
-            container.innerHTML = logs.map(log => {
-                const dateObj = new Date(log.created_at);
-                const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-                    day: 'numeric', 
-                    month: 'short', 
-                    year: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-
-                return `
-                    <div style="border-left: 3px solid #8b5cf6; padding: 8px 10px; background: #faf5ff; border-radius: 0 6px 6px 0;">
-                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #6b7280; margin-bottom: 4px;">
-                            <span style="font-weight: 700; color: #6b21a8;">👤 ${log.author_name || 'User'}</span>
-                            <span>🕒 ${formattedDate} WIB</span>
-                        </div>
-                        <div style="font-size: 13px; color: #1f2937; white-space: pre-line;">${log.note}</div>
-                    </div>
-                `;
-            }).join('');
+                .insert([{ lead_id: currentLogLeadId, notes: content }]);
+            error = res1.error;
         }
+
+        if (error) {
+            // Fallback 2: Coba nama kolom 'note'
+            let res2 = await supabaseClient
+                .from('lead_logs')
+                .insert([{ lead_id: currentLogLeadId, note: content }]);
+            error = res2.error;
+        }
+
+        if (error) throw error;
+
+        // Reset input & refresh timeline
+        if (logInput) logInput.value = '';
+        await fetchLeadLogs(currentLogLeadId);
+        alert('Catatan berhasil disimpan!');
+
+    } catch (err) {
+        console.error('Gagal simpan log:', err);
+        alert('Gagal menyimpan ke database: ' + err.message);
+    }
+}
+
+// Render List Catatan ke UI
+function renderLogsList(logs) {
+    // Cari elemen modal log
+    const logModal = document.getElementById('logModal');
+    if (!logModal) return;
+
+    // Cari elemen pembungkus timeline (tempat teks "Gagal memuat catatan" berada)
+    let targetContainer = null;
+    const allDivs = logModal.querySelectorAll('div, p, span');
+    
+    allDivs.forEach(el => {
+        if (el.innerText && el.innerText.includes('Timeline Interaksi:')) {
+            targetContainer = el.nextElementSibling;
+        }
+    });
+
+    if (!targetContainer) {
+        // Fallback pencarian kontainer
+        targetContainer = document.getElementById('timelineList') || logModal.querySelector('.timeline');
+    }
+
+    if (!targetContainer) return;
+
+    // Paksa timpa konten kontainer agar pesan merah "Gagal memuat catatan" terhapus
+    if (!logs || logs.length === 0) {
+        targetContainer.innerHTML = `<p style="color: #9ca3af; font-size: 13px; margin-top: 12px; text-align: center;">Belum ada riwayat catatan.</p>`;
+        return;
+    }
+
+    targetContainer.innerHTML = logs.map(log => {
+        const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+        const noteText = log.content || log.notes || log.note || log.message || '-';
+        return `
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 8px; margin-top: 8px;">
+                <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">📅 ${dateStr}</div>
+                <div style="font-size: 13px; color: #1f2937; white-space: pre-line;">${noteText}</div>
+            </div>
+        `;
+    }).join('');
+}
 
         // 4. Simpan Catatan Log Baru
         async function submitNewLog() {
@@ -2141,27 +2237,22 @@ async function processCSVImport() {
         }
 
         // 1. Fungsi Edit Lead (Aman dari Bug Null)
-function openEditLeadModal(id, name, email, phone, source, notes, nextFollowup) {
+function openEditLeadModal(id, name, email, phone, source, notes) {
     editingLeadId = id;
 
-    // Helper aman untuk set value tanpa bikin error kalau ID tidak ketemu
+    // Isikan data ke input form modal
     const setVal = (elementId, value) => {
         const el = document.getElementById(elementId);
         if (el) el.value = value || '';
     };
 
-    // Coba set nilai ke ID yang mungkin dipakai di HTML
     setVal('leadName', name);
     setVal('leadEmail', email);
     setVal('leadPhone', phone);
     setVal('leadSource', source);
-    setVal('leadNotes', notes);
-    
-    // Cek ID input tanggal follow-up
-    setVal('leadNextFollowupInput', nextFollowup);
-    setVal('leadNextFollowup', nextFollowup);
+    setVal('leadNotes', notes); // 👈 Memastikan textarea terisi catatan lama
 
-    // Ubah Judul Modal jika ada
+    // Ubah judul modal
     const title = document.querySelector('#addLeadModal h3');
     if (title) title.innerText = 'Edit Data Lead';
 
@@ -2170,18 +2261,197 @@ function openEditLeadModal(id, name, email, phone, source, notes, nextFollowup) 
     if (modal) modal.style.display = 'flex';
 }
 
-// 2. Fungsi Logs / Riwayat
+// ==========================================
+// INTEGRASI RIWAYAT / LOGS SELESAI & AMAN
+// ==========================================
+// 1. Fungsi Buka Modal Riwayat
 function openLogsModal(leadId, leadName) {
+    currentLogLeadId = leadId;
+
     const logModal = document.getElementById('logModal');
     if (logModal) {
+        logModal.dataset.activeLeadId = leadId;
         logModal.style.display = 'flex';
-    } else {
-        alert('Riwayat untuk: ' + (leadName || 'Lead Ini'));
+    }
+
+    const logInput = document.querySelector('#logModal textarea');
+    if (logInput) logInput.value = '';
+
+    fetchLeadLogs(leadId);
+}
+
+// 2. Tarik Data Riwayat dari Supabase
+async function fetchLeadLogs(leadId) {
+    if (!leadId) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('lead_logs')
+            .select('*')
+            .eq('lead_id', leadId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        renderLogsList(data || []);
+    } catch (err) {
+        console.warn('Gagal fetch log:', err);
+        renderLogsList([]);
     }
 }
 
-        
-    </script>
+// 3. Render List Catatan ke UI Modal
+function renderLogsList(logs) {
+    const logModal = document.getElementById('logModal');
+    if (!logModal) return;
+
+    let targetContainer = document.getElementById('timelineList');
+
+    if (!targetContainer) {
+        const allDivs = logModal.querySelectorAll('div, p');
+        allDivs.forEach(el => {
+            if (el.innerText && el.innerText.includes('Timeline Interaksi:')) {
+                targetContainer = el.nextElementSibling;
+            }
+        });
+    }
+
+    if (!targetContainer) return;
+
+    if (!logs || logs.length === 0) {
+        targetContainer.innerHTML = `<p style="color: #9ca3af; font-size: 13px; margin-top: 12px; text-align: center;">Belum ada riwayat catatan.</p>`;
+        return;
+    }
+
+    targetContainer.innerHTML = logs.map(log => {
+        const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+        const noteText = log.content || log.notes || log.note || log.message || '-';
+        return `
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 8px; margin-top: 8px;">
+                <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">📅 ${dateStr}</div>
+                <div style="font-size: 13px; color: #1f2937; white-space: pre-line;">${noteText}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 4. Fungsi Simpan Catatan Baru
+// ==========================================
+// BLOK RIWAYAT / LOGS AMAN (ANTI DUPLIKASI)
+// ==========================================
+window.currentLogLeadId = window.currentLogLeadId || null;
+
+window.openLogsModal = function(leadId, leadName) {
+    window.currentLogLeadId = leadId;
+
+    const logModal = document.getElementById('logModal');
+    if (logModal) {
+        logModal.dataset.activeLeadId = leadId;
+        logModal.style.display = 'flex';
+    }
+
+    const logInput = document.querySelector('#logModal textarea');
+    if (logInput) logInput.value = '';
+
+    fetchLeadLogs(leadId);
+};
+
+window.fetchLeadLogs = async function(leadId) {
+    if (!leadId) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('lead_logs')
+            .select('*')
+            .eq('lead_id', leadId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        renderLogsList(data || []);
+    } catch (err) {
+        console.warn('Gagal fetch log:', err);
+        renderLogsList([]);
+    }
+};
+
+window.renderLogsList = function(logs) {
+    const logModal = document.getElementById('logModal');
+    if (!logModal) return;
+
+    let targetContainer = document.getElementById('timelineList');
+
+    if (!targetContainer) {
+        const allDivs = logModal.querySelectorAll('div, p');
+        allDivs.forEach(el => {
+            if (el.innerText && el.innerText.includes('Timeline Interaksi:')) {
+                targetContainer = el.nextElementSibling;
+            }
+        });
+    }
+
+    if (!targetContainer) return;
+
+    if (!logs || logs.length === 0) {
+        targetContainer.innerHTML = `<p style="color: #9ca3af; font-size: 13px; margin-top: 12px; text-align: center;">Belum ada riwayat catatan.</p>`;
+        return;
+    }
+
+    targetContainer.innerHTML = logs.map(log => {
+        const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+        const noteText = log.content || log.notes || log.note || log.message || '-';
+        return `
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 8px; margin-top: 8px;">
+                <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">📅 ${dateStr}</div>
+                <div style="font-size: 13px; color: #1f2937; white-space: pre-line;">${noteText}</div>
+            </div>
+        `;
+    }).join('');
+};
+
+window.saveLeadLog = async function() {
+    const logModal = document.getElementById('logModal');
+    const logInput = document.querySelector('#logModal textarea');
+    const content = logInput ? logInput.value.trim() : '';
+
+    const activeLeadId = window.currentLogLeadId || (logModal ? logModal.dataset.activeLeadId : null);
+
+    if (!content) {
+        alert('Tulis catatan terlebih dahulu!');
+        return;
+    }
+
+    if (!activeLeadId) {
+        alert('ID Lead tidak ditemukan! Silakan tutup modal dan klik tombol Riwayat kembali.');
+        return;
+    }
+
+    try {
+        let { error } = await supabaseClient
+            .from('lead_logs')
+            .insert([{ lead_id: activeLeadId, content: content }]);
+
+        if (error) {
+            let res1 = await supabaseClient
+                .from('lead_logs')
+                .insert([{ lead_id: activeLeadId, notes: content }]);
+            error = res1.error;
+        }
+
+        if (error) {
+            let res2 = await supabaseClient
+                .from('lead_logs')
+                .insert([{ lead_id: activeLeadId, note: content }]);
+            error = res2.error;
+        }
+
+        if (error) throw error;
+
+        if (logInput) logInput.value = '';
+        await fetchLeadLogs(activeLeadId);
+        alert('Catatan berhasil disimpan!');
+
+    } catch (err) {
+        console.error('Gagal simpan log:', err);
+        alert('Gagal menyimpan ke database: ' + err.message);
+    }
+};     
     </script>
 </body>
 </html>
