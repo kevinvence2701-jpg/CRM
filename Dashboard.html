@@ -1969,6 +1969,31 @@ async function processCSVImport() {
             fetchLeads();
         }
 
+        // Fungsi untuk Menyimpan Perubahan Status ke Supabase
+        async function updateLeadStatus(leadId, newStatus) {
+            // 1. Simpan ke Database Supabase
+            const { error } = await supabaseClient
+                .from('leads')
+                .update({ lead_status: newStatus }) // Pastikan nama kolom di Supabase adalah 'lead_status'
+                .eq('id', leadId);
+
+            if (error) {
+                alert("Gagal mengupdate status: " + error.message);
+                // Jika gagal, tarik ulang data asli dari database
+                fetchLeads();
+                return;
+            }
+
+            // 2. Update data lokal di memori browser
+            const leadIndex = allLeads.findIndex(l => l.id === leadId);
+            if (leadIndex !== -1) {
+                allLeads[leadIndex].lead_status = newStatus;
+            }
+
+            // 3. Update otomatis kartu statistik di atas
+            applyFilters();
+        }
+
         
     </script>
     </script>
