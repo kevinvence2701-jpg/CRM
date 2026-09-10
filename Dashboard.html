@@ -686,29 +686,37 @@
         </div>
 
                 <!-- Search Bar & Filter Status -->
-        <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 220px;">
-                <input type="text" id="searchLead" oninput="filterLeads()" placeholder="🔍 Cari nama, email, atau no HP..." style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; box-sizing: border-box; outline: none;">
-            </div>
-            <div style="width: 180px;">
-                <select id="filterStatus" onchange="filterLeads()" style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; box-sizing: border-box; outline: none; background: white; cursor: pointer;">
-                    <option value="ALL">Semua Status</option>
-                    <option value="GUDANG">📦 Gudang Data (Belum Di-assign)</option>
-                    <option value="New">New</option>
-                    <option value="Contacted">Contacted</option>
-                    <option value="Qualified">Qualified</option>
-                    <option value="Deal">Deal</option>
-                    <option value="Lost">Lost</option>
-                </select>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center;">
+    <!-- 1. Input Pencarian Teks -->
+    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="🔍 Cari nama, email, atau no HP..." style="flex: 1; min-width: 220px; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; outline: none;">
+
+    <!-- 2. Filter Status -->
+    <select id="statusFilter" onchange="applyFilters()" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; outline: none;">
+        <option value="all">Semua Status</option>
+        <option value="New">🔵 New</option>
+        <option value="Contacted">🟣 Contacted</option>
+        <option value="Qualified">🟡 Qualified</option>
+        <option value="Deal">🟢 Deal</option>
+        <option value="Lost">🔴 Lost</option>
+    </select>
+
+    <!-- 3. Filter Penanggung Jawab -->
+    <select id="assigneeFilter" onchange="applyFilters()" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; outline: none;">
+        <option value="all">Semua Penanggung Jawab</option>
+        <option value="unassigned">📦 Gudang Data</option>
+    </select>
+
+    <!-- 4. Filter Sumber (Source) -->
+    <select id="sourceFilter" onchange="applyFilters()" style="padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; background: white; cursor: pointer; outline: none;">
+        <option value="all">Semua Sumber</option>
+    </select>
+</div>
 
 
-<!-- ➕ TAMBAHKAN TOMBOL INI DI BAWAHNYA -->
-<button id="btnImportCsv" onclick="openImportModal()" style="display: none; background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
-    📥 Import CSV
-</button>
-
-            </div>
-        </div>
+        <!-- ➕ TAMBAHKAN TOMBOL INI DI BAWAHNYA -->
+        <button id="btnImportCsv" onclick="openImportModal()" style="display: none; background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
+            📥 Import CSV
+        </button>
 
         <!-- Di samping tombol Export CSV, tambahkan tombol ini -->
 <button id="btnAssignTrigger"  onclick="openAssignModal()" style="display: none; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
@@ -1177,19 +1185,10 @@
 
             allLeads = leads || [];
 
-            // ➕ SELIPKAN BARIS INI DI SINI
-    updateDashboardStats(allLeads);
-
-    renderLeadsTable(allLeads);
-
-            if (document.getElementById('stat-total-leads')) {
-                document.getElementById('stat-total-leads').innerText = allLeads.length;
-                document.getElementById('stat-new-leads').innerText = allLeads.filter(l => l.lead_status === 'New').length;
-                document.getElementById('stat-deal-leads').innerText = allLeads.filter(l => l.lead_status === 'Deal').length;
-            }
-
-            filterLeads();
-        }
+    // ⚡ Step 3: Isi dropdown & jalankan master filter
+    populateFilterDropdowns();
+    applyFilters();
+}
 
         // 5. Filter & Search Real-Time
         function filterLeads() {
@@ -1774,6 +1773,76 @@ async function processCSVImport() {
 
             if (inputEl) inputEl.value = '';
             await fetchLeadLogs(currentLogLeadId);
+        }
+
+        // ==========================================
+        // STEP 2: LOGIKA FILTER PENANGGUNG JAWAB & SUMBER
+        // ==========================================
+
+        // 1. Mengisi Opsi Dropdown Penanggung Jawab & Sumber Secara Dinamis
+        function populateFilterDropdowns() {
+            // Opsi Penanggung Jawab
+            const assigneeSelect = document.getElementById('assigneeFilter');
+            if (assigneeSelect) {
+                let options = `
+                    <option value="all">Semua Penanggung Jawab</option>
+                    <option value="unassigned">📦 Gudang Data (Unassigned)</option>
+                `;
+                teamMembers.forEach(member => {
+                    options += `<option value="${member.id}">👤 ${member.full_name || member.id}</option>`;
+                });
+                assigneeSelect.innerHTML = options;
+            }
+
+            // Opsi Sumber (Ambil unik dari data leads yang ada)
+            const sourceSelect = document.getElementById('sourceFilter');
+            if (sourceSelect) {
+                const uniqueSources = [...new Set(allLeads.map(l => l.source).filter(Boolean))];
+                let sourceOptions = `<option value="all">Semua Sumber</option>`;
+                uniqueSources.forEach(src => {
+                    sourceOptions += `<option value="${src}">${src}</option>`;
+                });
+                sourceSelect.innerHTML = sourceOptions;
+            }
+        }
+
+        // 2. Master Fungsi Filter Kombinasi
+        function applyFilters() {
+            const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+            const statusVal = document.getElementById('statusFilter')?.value || 'all';
+            const assigneeVal = document.getElementById('assigneeFilter')?.value || 'all';
+            const sourceVal = document.getElementById('sourceFilter')?.value || 'all';
+
+            const filtered = allLeads.filter(lead => {
+                // Filter Teks (Nama, Email, HP)
+                const matchSearch = !searchVal || 
+                    (lead.full_name || '').toLowerCase().includes(searchVal) ||
+                    (lead.email || '').toLowerCase().includes(searchVal) ||
+                    (lead.phone || '').toLowerCase().includes(searchVal);
+
+                // Filter Status
+                const matchStatus = (statusVal === 'all') || (lead.lead_status === statusVal);
+
+                // Filter Penanggung Jawab
+                let matchAssignee = true;
+                if (assigneeVal === 'unassigned') {
+                    matchAssignee = !lead.assigned_to;
+                } else if (assigneeVal !== 'all') {
+                    matchAssignee = (lead.assigned_to === assigneeVal);
+                }
+
+                // Filter Sumber
+                const matchSource = (sourceVal === 'all') || (lead.source === sourceVal);
+
+                return matchSearch && matchStatus && matchAssignee && matchSource;
+            });
+
+            // Reset ke Halaman 1 saat memfilter
+            currentPage = 1;
+            
+            // Render ulang tabel & update kartu statistik
+            renderLeadsTable(filtered);
+            updateDashboardStats(filtered);
         }
     </script>
     </script>
