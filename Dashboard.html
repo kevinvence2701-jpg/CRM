@@ -1059,6 +1059,10 @@
 
     <!-- JAVASCRIPT CHARTS & TOGGLE RESPONSIVE -->
     <script>
+        // Bypasser aman biar tidak crash
+var ctxDonut = null;
+var ctxBar = null;
+var ctxLine = null;
         // Toggle Sidebar Mobile
         const mobileToggle = document.getElementById('mobileToggle');
         const sidebar = document.getElementById('sidebar');
@@ -1066,7 +1070,7 @@
         mobileToggle.addEventListener('click', () => {
             sidebar.classList.toggle('active');
         });
-        
+
         new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
