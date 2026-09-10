@@ -1066,24 +1066,7 @@
         mobileToggle.addEventListener('click', () => {
             sidebar.classList.toggle('active');
         });
-
-        // 2. Donut Chart Source
-        // Gantikan baris pemanggilan chart yang error dengan pengecekan aman
-const donutEl = document.getElementById('sourceDonutChart');
-if (donutEl) {
-    const ctxDonut = donutEl.getContext('2d');
-    new Chart(ctxDonut, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [48, 33, 19],
-                backgroundColor: ['#4f46e5', '#3b82f6', '#cbd5e1'],
-                borderWidth: 0
-            }]
-        },
-        options: { cutout: '75%', plugins: { legend: { display: false } } }
-    });
-}
+        
         new Chart(ctxDonut, {
             type: 'doughnut',
             data: {
