@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings Profile - CRM Kevin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; background-color: #f3f4f6; color: #1f2937; display: flex; min-height: 100vh; }
+        
+        /* Sidebar Styling */
+        .sidebar { width: 240px; background: white; border-right: 1px solid #e5e7eb; padding: 20px 16px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .brand-logo { font-weight: 800; font-size: 18px; color: #4f46e5; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+        .nav-menu { list-style: none; padding: 0; margin: 0; }
+        .nav-item { margin-bottom: 4px; }
+        .nav-item a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #4b5563; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; }
+        .nav-item.active a, .nav-item a:hover { background: #eef2ff; color: #4f46e5; }
+        .nav-section { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; margin: 20px 0 6px 8px; }
+        
+        /* Main Content Styling */
+        .main-content { flex: 1; padding: 32px; max-width: 800px; }
+        .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 24px; border: 1px solid #e5e7eb; }
+        .card-title { font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; }
+        .form-control:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .form-control:disabled { background: #f9fafb; color: #6b7280; cursor: not-allowed; }
+        
+        .btn-primary { background: #4f46e5; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+        .btn-primary:hover { background: #4338ca; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand-logo">
+            <i class="fa-solid fa-layer-group"></i> CRM Kevin.
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="Dashboard.html"><i class="fa-solid fa-house"></i> Dashboard</a></li>
+        </ul>
+        <div class="nav-section">Management</div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="users.html"><i class="fa-solid fa-users"></i> Users</a></li>
+            <li class="nav-item"><a href="#"><i class="fa-solid fa-box"></i> Products</a></li>
+        </ul>
+        <div class="nav-section">General</div>
+        <ul class="nav-menu">
+            <li class="nav-item active"><a href="settings.html"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="nav-item">
+                <a href="javascript:void(0)" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <h2 style="margin-top: 0; margin-bottom: 24px; color: #111827;">⚙️ Pengaturan Profil & Akun</h2>
+
+        <!-- CARD 1: EDIT PROFIL & BIO -->
+        <div class="card">
+            <h3 class="card-title">👤 Informasi Profil</h3>
+            <form onsubmit="saveProfile(event)">
+                <div class="form-group">
+                    <label>Email (Tidak Dapat Diubah)</label>
+                    <input type="email" id="userEmail" class="form-control" disabled>
+                </div>
+                <div class="form-group">
+                    <label>Role / Hak Akses</label>
+                    <input type="text" id="userRole" class="form-control" disabled style="text-transform: uppercase; font-weight: 700;">
+                </div>
+                <div class="form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="userFullName" class="form-control" placeholder="Masukkan nama lengkap lo..." required>
+                </div>
+                <div class="form-group">
+                    <label>Bio / Catatan Diri</label>
+                    <textarea id="userBio" class="form-control" style="height: 90px; resize: vertical;" placeholder="Tulis bio singkat, role spesifik, atau informasi kontak harian lo..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">💾 Simpan Profil</button>
+            </form>
+        </div>
+
+        <!-- CARD 2: EDIT PASSWORD -->
+        <div class="card">
+            <h3 class="card-title">🔒 Keamanan & Ubah Password</h3>
+            <form onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label>Password Baru</label>
+                    <input type="password" id="newPassword" class="form-control" placeholder="Minimal 6 karakter" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>Konfirmasi Password Baru</label>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="Ketik ulang password baru..." required minlength="6">
+                </div>
+                <button type="submit" class="btn-primary" style="background: #059669;">🔑 Perbarui Password</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // CONFIG SUPABASE (Ganti URL & ANON KEY Sesuai Project Lo)
+        // CONFIG SUPABASE
+const SUPABASE_URL = "https://eqvkslzhycfujrkbcxgp.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_IrkPRTFSy-YPI3-_g6IniA_jSWTxwvv";
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUserId = null;
+
+        // Load Data Akun Saat Halaman Dibuka
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'index.html'; // Redirect ke login jika belum auth
+                return;
+            }
+
+            currentUserId = session.user.id;
+            document.getElementById('userEmail').value = session.user.email || '';
+
+            // Fetch profile data dari Supabase
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUserId)
+                .single();
+
+            if (profile) {
+                document.getElementById('userFullName').value = profile.full_name || '';
+                document.getElementById('userRole').value = profile.role || 'sales';
+                document.getElementById('userBio').value = profile.bio || '';
+            }
+        });
+
+        // Simpan Profil & Bio
+        async function saveProfile(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('userFullName').value.trim();
+            const bioText = document.getElementById('userBio').value.trim();
+
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ 
+                    full_name: fullName,
+                    bio: bioText
+                })
+                .eq('id', currentUserId);
+
+            if (error) {
+                alert("Gagal memperbarui profil: " + error.message);
+            } else {
+                alert("Berhasil! Profil dan bio telah diperbarui.");
+            }
+        }
+
+        // Ubah Password
+        async function changePassword(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                alert("Konfirmasi password tidak cocok!");
+                return;
+            }
+
+            const { error } = await supabaseClient.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) {
+                alert("Gagal memperbarui password: " + error.message);
+            } else {
+                alert("Password berhasil diperbarui!");
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            }
+        }
+
+        // Logout Function
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
