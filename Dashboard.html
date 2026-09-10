@@ -593,13 +593,17 @@
                 <button class="icon-btn"><i class="fa-regular fa-bell"></i></button>
                 <button class="icon-btn"><i class="fa-regular fa-circle-question"></i></button>
                 
-                <div class="user-profile">
-                    <div class="user-avatar">KS</div>
-                    <div class="user-info">
-                        <div class="user-name">Kevin Vence</div>
-                        <div class="user-role">Super Admin</div>
-                    </div>
-                </div>
+                <div class="user-profile" style="display: flex; align-items: center; gap: 10px;">
+    <!-- Avatar Inisial Bulat -->
+    <div id="headerUserAvatar" style="width: 38px; height: 38px; border-radius: 50%; background: #4f46e5; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+        --
+    </div>
+    <!-- Nama & Role -->
+    <div style="text-align: left;">
+        <div id="headerUserName" style="font-weight: 700; font-size: 14px; color: #111827;">Loading...</div>
+        <div id="headerUserRole" style="font-size: 12px; color: #6b7280; text-transform: uppercase; font-weight: 600;">USER</div>
+    </div>
+</div>
             </div>
         </header>
 
@@ -1006,11 +1010,12 @@
         let selectedLeadIds = [];
 
         // 1. Cek Autentikasi & Profile Role
+        // Cari bagian di dalam fungsi checkAuth() setelah mendapatkan currentUserProfile:
+        // Tambahkan / Sesuaikan kode ini di dalam checkAuth():
+
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            
             if (!session) {
-                alert("Anda harus login terlebih dahulu!");
                 window.location.href = "index.html";
                 return;
             }
@@ -1021,13 +1026,35 @@
                 .from('profiles')
                 .select('*')
                 .eq('id', currentUser.id)
-                .single();
+                .maybeSingle();
 
             currentUserProfile = profile || { id: currentUser.id, role: 'sales' };
 
+            // ⚡ PROSES UPDATE PROFIL HEADER DINAMIS ⚡
+            const nameEl = document.getElementById('headerUserName');
+            const roleEl = document.getElementById('headerUserRole');
+            const avatarEl = document.getElementById('headerUserAvatar');
+
+            const fullName = currentUserProfile.full_name || currentUser.email || 'User';
+            const roleName = currentUserProfile.role || 'sales';
+
+            if (nameEl) nameEl.innerText = fullName;
+            if (roleEl) roleEl.innerText = roleName.toUpperCase();
+
+            // Generator Inisial Avatar (Contoh: "Budi Sales" -> "BS", "Jessica" -> "J")
+            if (avatarEl) {
+                const words = fullName.trim().split(' ');
+                let initials = words[0].charAt(0).toUpperCase();
+                if (words.length > 1) {
+                    initials += words[words.length - 1].charAt(0).toUpperCase();
+                }
+                avatarEl.innerText = initials;
+            }
+
+            // Lanjut ke fungsi app berikutnya
             applyRolePermissions();
-            fetchTeamMembers();
             fetchLeads();
+            fetchTeamMembers();
         }
 
         checkAuth();
