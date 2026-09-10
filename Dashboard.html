@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Library Parser CSV PapaParse -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
     <style>
         :root {
@@ -649,6 +651,10 @@
                 <p style="margin: 4px 0 0; color: #6b7280; font-size: 14px;">Kelola seluruh calon klien bisnis lo di sini.</p>
             </div>
             <div style="display: flex; gap: 12px;">
+                <!-- 1. Tombol Import CSV (Sejajar di paling kiri grup tombol) -->
+    <button id="btnImportCsv" onclick="openImportModal()" style="display: none; background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; align-items: center; gap: 6px;">
+        📥 Import CSV
+    </button>
                 <!-- Tombol Export CSV -->
                 <button onclick="exportToCSV()" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
                     📥 Export CSV
@@ -678,9 +684,15 @@
                 </select>
 
                 <!-- Di samping tombol Export CSV, tambahkan tombol ini -->
-<button id="btnAssignTrigger" onclick="openAssignModal()" style="display: none; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
+<button id="btnAssignTrigger"  onclick="openAssignModal()" style="display: none; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
     Bagikan Data
 </button>
+
+<!-- ➕ TAMBAHKAN TOMBOL INI DI BAWAHNYA -->
+<button id="btnImportCsv" onclick="openImportModal()" style="display: none; background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
+    📥 Import CSV
+</button>
+
             </div>
         </div>
 
@@ -828,6 +840,39 @@
         <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button type="button" onclick="closeAssignModal()" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">Batal</button>
             <button type="button" onclick="executeAssignLeads()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Bagikan Data</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Assign Lead ke Tim -->
+<div id="assignModal" style="display: none; position: fixed; top: 0; left: 0; ...">
+    <!-- isi modal assign -->
+</div>
+
+<!-- ➕ TAMBAHKAN MODAL IMPORT CSV INI DI BAWAHNYA -->
+<div id="importCsvModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999;">
+    <div style="background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; color: #111827; margin-bottom: 8px;">Import CSV ke Gudang Data</h3>
+        <p style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">
+            Upload file CSV untuk memasukkan data lead secara massal. Data otomatis masuk ke <b>Gudang Data</b>.
+        </p>
+        
+        <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; font-size: 12px; color: #374151; margin-bottom: 16px;">
+            <b>Format Judul Kolom CSV yang Disarankan:</b><br>
+            <code>Nama</code>, <code>Email</code>, <code>No HP</code>, <code>Sumber</code>, <code>Catatan</code>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <input type="file" id="csvFileInput" accept=".csv" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+        </div>
+
+        <div id="importProgress" style="display: none; margin-bottom: 16px; font-size: 13px; color: #2563eb; font-weight: 600;">
+            ⏳ Memproses & mengunggah data ke Supabase...
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" onclick="closeImportModal()" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">Batal</button>
+            <button type="button" id="btnSubmitImport" onclick="processCSVImport()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Upload & Import</button>
         </div>
     </div>
 </div>
@@ -984,13 +1029,13 @@
 
         // 2. Proteksi Tombol & Tampilan Berdasarkan Role
         function applyRolePermissions() {
-            const btnExport = document.querySelector("button[onclick='exportToCSV()']");
-            const isAdminOrManager = ['admin', 'super_admin', 'manager'].includes(currentUserProfile.role);
-            
-            if (btnExport) {
-                btnExport.style.display = isAdminOrManager ? 'inline-flex' : 'none';
-            }
-        }
+    const btnExport = document.querySelector("button[onclick='exportToCSV()']");
+    const btnImport = document.getElementById("btnImportCsv");
+    const isAdminOrManager = ['admin', 'super_admin', 'manager'].includes(currentUserProfile.role);
+    
+    if (btnExport) btnExport.style.display = isAdminOrManager ? 'inline-flex' : 'none';
+    if (btnImport) btnImport.style.display = isAdminOrManager ? 'inline-flex' : 'none';
+}
 
         // 3. Ambil Daftar Anggota Tim (Untuk Menu Assign)
         async function fetchTeamMembers() {
@@ -1312,6 +1357,94 @@
             await supabaseClient.auth.signOut();
             window.location.href = "index.html";
         }
+
+        // Modal Controls Import CSV
+function openImportModal() {
+    document.getElementById('importCsvModal').style.display = 'flex';
+    document.getElementById('csvFileInput').value = '';
+    document.getElementById('importProgress').style.display = 'none';
+}
+
+function closeImportModal() {
+    document.getElementById('importCsvModal').style.display = 'none';
+}
+
+// Eksekusi Import CSV ke Supabase
+async function processCSVImport() {
+    const fileInput = document.getElementById('csvFileInput');
+    const progressText = document.getElementById('importProgress');
+    const btnSubmit = document.getElementById('btnSubmitImport');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Silakan pilih file CSV terlebih dahulu!");
+        return;
+    }
+
+    const file = fileInput.files[0];
+    btnSubmit.disabled = true;
+    progressText.style.display = 'block';
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async function(results) {
+            const rawData = results.data;
+
+            if (!rawData || rawData.length === 0) {
+                alert("File CSV kosong atau format tidak valid!");
+                btnSubmit.disabled = false;
+                progressText.style.display = 'none';
+                return;
+            }
+
+            // Mapping header kolom fleksibel (mendukung B. Indonesia / Inggris)
+            const formattedLeads = rawData.map(row => {
+                const name = row['Nama'] || row['Nama Lengkap'] || row['full_name'] || row['Name'] || '';
+                const email = row['Email'] || row['email'] || '';
+                const phone = row['No HP'] || row['No. HP'] || row['Phone'] || row['phone'] || row['HP'] || '';
+                const source = row['Sumber'] || row['Source'] || row['source'] || 'CSV Import';
+                const note = row['Catatan'] || row['Note'] || row['note'] || '';
+
+                return {
+                    full_name: name.trim(),
+                    email: email.trim(),
+                    phone: phone.trim(),
+                    source: source.trim(),
+                    lead_status: 'New',
+                    note: note.trim(),
+                    assigned_to: null // Otomatis masuk Gudang Data
+                };
+            }).filter(item => item.full_name || item.phone || item.email); // Filter baris kosong
+
+            if (formattedLeads.length === 0) {
+                alert("Tidak ada data lead valid yang terdeteksi!");
+                btnSubmit.disabled = false;
+                progressText.style.display = 'none';
+                return;
+            }
+
+            try {
+                // Batch Upload per 200 data agar tidak menyentuh limit payload Supabase
+                const chunkSize = 200;
+                for (let i = 0; i < formattedLeads.length; i += chunkSize) {
+                    const chunk = formattedLeads.slice(i, i + chunkSize);
+                    const { error } = await supabaseClient.from('leads').insert(chunk);
+                    
+                    if (error) throw error;
+                }
+
+                alert(`Berhasil mengimpor ${formattedLeads.length} data lead ke Gudang Data!`);
+                closeImportModal();
+                fetchLeads();
+            } catch (err) {
+                alert("Gagal mengunggah data ke database: " + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+                progressText.style.display = 'none';
+            }
+        }
+    });
+}
     </script>
     </script>
 </body>
