@@ -1328,8 +1328,11 @@ function updateDashboardStats(leads) {
                             ${lead.email || '-'}
                         </td>
                         <td style="padding: 14px 12px; font-size: 13px;">
-                            ${lead.phone || '-'} ${waBtn}
-                        </td>
+    <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+        <span>${lead.phone || '-'}</span>
+        ${waBtn}
+    </div>
+</td>
                         <td style="padding: 14px 12px; font-size: 13px; color: #4b5563;">
                             ${lead.source || '-'}
                         </td>
