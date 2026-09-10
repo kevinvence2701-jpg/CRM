@@ -1068,7 +1068,10 @@
         });
 
         // 1. Line Chart Overall Sales
-        const ctxLine = document.getElementById('salesLineChart').getContext('2d');
+        const ctx = document.getElementById('myChart')?.getContext('2d');
+if (ctx) {
+    // Kodingan chart
+}
         new Chart(ctxLine, {
             type: 'line',
             data: {
