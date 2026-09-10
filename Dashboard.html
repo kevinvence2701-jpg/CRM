@@ -669,12 +669,18 @@
             <div style="width: 180px;">
                 <select id="filterStatus" onchange="filterLeads()" style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; box-sizing: border-box; outline: none; background: white; cursor: pointer;">
                     <option value="ALL">Semua Status</option>
+                    <option value="GUDANG">📦 Gudang Data (Belum Di-assign)</option>
                     <option value="New">New</option>
                     <option value="Contacted">Contacted</option>
                     <option value="Qualified">Qualified</option>
                     <option value="Deal">Deal</option>
                     <option value="Lost">Lost</option>
                 </select>
+
+                <!-- Di samping tombol Export CSV, tambahkan tombol ini -->
+<button id="btnAssignTrigger" onclick="openAssignModal()" style="display: none; background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
+    Bagikan Data
+</button>
             </div>
         </div>
 
@@ -806,7 +812,25 @@
     </div>
 </div>
 
-
+<!-- Modal Assign Lead ke Tim -->
+<div id="assignModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999;">
+    <div style="background: white; padding: 24px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; color: #111827; margin-bottom: 12px;">Alokasikan Data Lead</h3>
+        <p style="font-size: 13px; color: #6b7280; margin-bottom: 16px;">Pilih tim (Manager/Sales) untuk menerima <b id="selectedCountText">0</b> data lead yang dipilih.</p>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151;">Pilih Anggota Tim</label>
+            <select id="assignUserSelect" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;">
+                <option value="">-- Pilih User --</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" onclick="closeAssignModal()" style="padding: 8px 16px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer;">Batal</button>
+            <button type="button" onclick="executeAssignLeads()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Bagikan Data</button>
+        </div>
+    </div>
+</div>
 
     <!-- Modal Tambah Lead Baru -->
 <div id="addLeadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999;">
@@ -925,55 +949,101 @@
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Variable Penyimpan Master Data Leads
+        let currentUser = null;
+        let currentUserProfile = null;
         let allLeads = [];
+        let teamMembers = [];
+        let selectedLeadIds = [];
 
-        // 1. Cek Autentikasi User
+        // 1. Cek Autentikasi & Profile Role
         async function checkAuth() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             
             if (!session) {
                 alert("Anda harus login terlebih dahulu!");
                 window.location.href = "index.html";
-            } else {
-                console.log("Login aktif sebagai:", session.user.email);
-                fetchLeads();
+                return;
             }
+
+            currentUser = session.user;
+
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+
+            currentUserProfile = profile || { id: currentUser.id, role: 'sales' };
+
+            applyRolePermissions();
+            fetchTeamMembers();
+            fetchLeads();
         }
 
         checkAuth();
 
-        // 2. Tarik Data Leads dari Supabase
+        // 2. Proteksi Tombol & Tampilan Berdasarkan Role
+        function applyRolePermissions() {
+            const btnExport = document.querySelector("button[onclick='exportToCSV()']");
+            const isAdminOrManager = ['admin', 'super_admin', 'manager'].includes(currentUserProfile.role);
+            
+            if (btnExport) {
+                btnExport.style.display = isAdminOrManager ? 'inline-flex' : 'none';
+            }
+        }
+
+        // 3. Ambil Daftar Anggota Tim (Untuk Menu Assign)
+        async function fetchTeamMembers() {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('id, full_name, role');
+            
+            if (!error && data) {
+                teamMembers = data;
+                populateAssignDropdown();
+            }
+        }
+
+        function populateAssignDropdown() {
+            const select = document.getElementById('assignUserSelect');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Pilih User Target --</option>' +
+                teamMembers.map(member => `<option value="${member.id}">${member.full_name || member.id} (${member.role.toUpperCase()})</option>`).join('');
+        }
+
+        // 4. Tarik Data Leads dari Supabase
         async function fetchLeads() {
             const tableBody = document.getElementById("leads-table-body");
             if (!tableBody) return;
 
-            const { data: leads, error } = await supabaseClient
-                .from('leads')
-                .select('*')
-                .order('created_at', { ascending: false });
+            let query = supabaseClient.from('leads').select('*').order('created_at', { ascending: false });
+
+            // Jika role Sales, hanya tampilkan data milik sendiri
+            if (currentUserProfile.role === 'sales') {
+                query = query.eq('assigned_to', currentUser.id);
+            }
+
+            const { data: leads, error } = await query;
 
             if (error) {
                 console.error("Gagal mengambil data:", error.message);
-                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:20px;">Gagal memuat data dari server!</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:20px;">Gagal memuat data dari server!</td></tr>`;
                 return;
             }
 
-            // Simpan ke variabel global master
             allLeads = leads || [];
 
-            // Hitung & Update Metrics Ringkasan
             if (document.getElementById('stat-total-leads')) {
                 document.getElementById('stat-total-leads').innerText = allLeads.length;
                 document.getElementById('stat-new-leads').innerText = allLeads.filter(l => l.lead_status === 'New').length;
                 document.getElementById('stat-deal-leads').innerText = allLeads.filter(l => l.lead_status === 'Deal').length;
             }
 
-            // Jalankan filter sesuai pencarian/status saat ini
             filterLeads();
         }
 
-        // 3. Logika Filter & Search Real-Time
+        // 5. Filter & Search Real-Time
         function filterLeads() {
             const searchValue = (document.getElementById('searchLead')?.value || '').toLowerCase();
             const statusValue = document.getElementById('filterStatus')?.value || 'ALL';
@@ -984,7 +1054,12 @@
                 const phoneMatch = (lead.phone || '').toLowerCase().includes(searchValue);
                 const matchesSearch = nameMatch || emailMatch || phoneMatch;
 
-                const matchesStatus = statusValue === 'ALL' || lead.lead_status === statusValue;
+                let matchesStatus = true;
+                if (statusValue === 'GUDANG') {
+                    matchesStatus = lead.assigned_to === null || lead.assigned_to === '';
+                } else if (statusValue !== 'ALL') {
+                    matchesStatus = lead.lead_status === statusValue;
+                }
 
                 return matchesSearch && matchesStatus;
             });
@@ -992,22 +1067,29 @@
             renderLeadsTable(filteredLeads);
         }
 
-        // 4. Render Data Ke Tabel HTML
+        // 6. Render Data Ke Tabel HTML
         function renderLeadsTable(leadsToRender) {
             const tableBody = document.getElementById("leads-table-body");
             if (!tableBody) return;
 
             if (leadsToRender.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#6b7280; padding:24px;">Tidak ada data lead yang cocok.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#6b7280; padding:24px;">Tidak ada data lead yang cocok.</td></tr>`;
                 return;
             }
+
+            const isAdminOrManager = ['admin', 'super_admin', 'manager'].includes(currentUserProfile.role);
 
             tableBody.innerHTML = leadsToRender.map(lead => {
                 const safeName = (lead.full_name || '').replace(/'/g, "\\'");
                 const safePhone = lead.phone || '';
+                
+                // Cari nama penerima lead
+                const assignedUser = teamMembers.find(m => m.id === lead.assigned_to);
+                const assignedName = assignedUser ? `${assignedUser.full_name || 'User'} (${assignedUser.role})` : '<span style="color:#f59e0b; font-weight:600;">Gudang Data</span>';
 
                 return `
                 <tr style="border-bottom: 1px solid #f3f4f6;">
+                    ${isAdminOrManager ? `<td style="padding: 14px 12px;"><input type="checkbox" class="lead-checkbox" value="${lead.id}" onchange="updateSelectedCount()"></td>` : ''}
                     <td style="padding: 14px 12px; font-weight: 600; color: #111827;">${lead.full_name || '-'}</td>
                     <td style="padding: 14px 12px; color: #4b5563;">${lead.email || '-'}</td>
                     <td style="padding: 14px 12px; color: #4b5563;">
@@ -1019,6 +1101,7 @@
                         ` : ''}
                     </td>
                     <td style="padding: 14px 12px; color: #4b5563;">${lead.source || '-'}</td>
+                    <td style="padding: 14px 12px; font-size: 12px;">${assignedName}</td>
                     <td style="padding: 14px 12px;">
                         <select onchange="updateLeadStatus('${lead.id}', this.value)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 12px; font-weight: 600; cursor: pointer;">
                             <option value="New" ${lead.lead_status === 'New' ? 'selected' : ''}>New</option>
@@ -1028,15 +1111,10 @@
                             <option value="Lost" ${lead.lead_status === 'Lost' ? 'selected' : ''}>Lost</option>
                         </select>
                     </td>
-                    <td style="padding: 14px 12px; color: #6b7280;">${lead.note || '-'}</td>
                     <td style="padding: 14px 12px;">
                         <div style="display: flex; gap: 6px;">
-                            <button onclick="openEditModal('${lead.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                                Edit
-                            </button>
-                            <button onclick="deleteLead('${lead.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
-                                Hapus
-                            </button>
+                            <button onclick="openEditModal('${lead.id}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Edit</button>
+                            <button onclick="deleteLead('${lead.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>
                         </div>
                     </td>
                 </tr>
@@ -1044,7 +1122,58 @@
             }).join('');
         }
 
-        // 5. Direct WhatsApp Follow-Up
+        // 7. Logika Checkbox & Assign Leads
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.lead-checkbox:checked');
+            selectedLeadIds = Array.from(checkboxes).map(cb => cb.value);
+            
+            const btnAssign = document.getElementById('btnAssignTrigger');
+            if (btnAssign) {
+                if (selectedLeadIds.length > 0) {
+                    btnAssign.style.display = 'inline-flex';
+                    btnAssign.innerText = `Bagikan (${selectedLeadIds.length}) Data`;
+                } else {
+                    btnAssign.style.display = 'none';
+                }
+            }
+        }
+
+        function openAssignModal() {
+            if (selectedLeadIds.length === 0) {
+                alert("Pilih minimal satu lead dengan mencentang kotak di tabel!");
+                return;
+            }
+            document.getElementById('selectedCountText').innerText = selectedLeadIds.length;
+            document.getElementById('assignModal').style.display = 'flex';
+        }
+
+        function closeAssignModal() {
+            document.getElementById('assignModal').style.display = 'none';
+        }
+
+        async function executeAssignLeads() {
+            const targetUserId = document.getElementById('assignUserSelect').value;
+            if (!targetUserId) {
+                alert("Pilih anggota tim penerima data!");
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('leads')
+                .update({ assigned_to: targetUserId })
+                .in('id', selectedLeadIds);
+
+            if (error) {
+                alert("Gagal membagikan lead: " + error.message);
+            } else {
+                alert(`Berhasil membagikan ${selectedLeadIds.length} data lead!`);
+                selectedLeadIds = [];
+                closeAssignModal();
+                fetchLeads();
+            }
+        }
+
+        // 8. Direct WhatsApp
         function sendWhatsApp(phone, name) {
             if (!phone) {
                 alert("Nomor HP tidak ditemukan!");
@@ -1052,18 +1181,14 @@
             }
 
             let cleanPhone = phone.replace(/[^0-9]/g, '');
-            if (cleanPhone.startsWith('0')) {
-                cleanPhone = '62' + cleanPhone.slice(1);
-            } else if (cleanPhone.startsWith('8')) {
-                cleanPhone = '62' + cleanPhone;
-            }
+            if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+            else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
 
             const message = `Halo Kak ${name || ''}, terima kasih sudah menghubungi kami. Saya ingin follow-up terkait kebutuhan Anda. Ada yang bisa dibantu?`;
-            const encodedMessage = encodeURIComponent(message);
-            window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, '_blank');
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // 6. Modal Controls Edit Lead
+        // 9. Modal Controls Edit & Tambah Lead
         function openEditModal(leadId) {
             const lead = allLeads.find(l => l.id === leadId);
             if (!lead) return;
@@ -1076,21 +1201,17 @@
             document.getElementById('editLeadStatus').value = lead.lead_status || 'New';
             document.getElementById('editLeadNote').value = lead.note || '';
 
-            const modal = document.getElementById('editLeadModal');
-            if (modal) modal.style.display = 'flex';
+            document.getElementById('editLeadModal').style.display = 'flex';
         }
 
         function closeEditModal() {
-            const modal = document.getElementById('editLeadModal');
-            if (modal) modal.style.display = 'none';
+            document.getElementById('editLeadModal').style.display = 'none';
         }
 
-        // 7. Submit Form Edit Lead
         const editForm = document.getElementById('editLeadForm');
         if (editForm) {
             editForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
                 const leadId = document.getElementById('editLeadId').value;
                 const updatedLead = {
                     full_name: document.getElementById('editLeadName').value,
@@ -1101,14 +1222,9 @@
                     note: document.getElementById('editLeadNote').value
                 };
 
-                const { error } = await supabaseClient
-                    .from('leads')
-                    .update(updatedLead)
-                    .eq('id', leadId);
-
-                if (error) {
-                    alert('Gagal memperbarui lead: ' + error.message);
-                } else {
+                const { error } = await supabaseClient.from('leads').update(updatedLead).eq('id', leadId);
+                if (error) alert('Gagal memperbarui lead: ' + error.message);
+                else {
                     alert('Data lead berhasil diperbarui!');
                     closeEditModal();
                     fetchLeads();
@@ -1116,25 +1232,16 @@
             });
         }
 
-        // 8. Modal Controls Tambah Lead
-        function openModal() {
-            const modal = document.getElementById('addLeadModal');
-            if (modal) modal.style.display = 'flex';
-        }
-
+        function openModal() { document.getElementById('addLeadModal').style.display = 'flex'; }
         function closeModal() {
-            const modal = document.getElementById('addLeadModal');
-            if (modal) modal.style.display = 'none';
-            const form = document.getElementById('addLeadForm');
-            if (form) form.reset();
+            document.getElementById('addLeadModal').style.display = 'none';
+            document.getElementById('addLeadForm')?.reset();
         }
 
-        // 9. Submit Form Lead Baru
         const leadForm = document.getElementById('addLeadForm');
         if (leadForm) {
             leadForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
                 const newLead = {
                     full_name: document.getElementById('leadName').value,
                     email: document.getElementById('leadEmail').value,
@@ -1144,13 +1251,9 @@
                     lead_status: 'New'
                 };
 
-                const { data, error } = await supabaseClient
-                    .from('leads')
-                    .insert([newLead]);
-
-                if (error) {
-                    alert('Gagal menambah lead: ' + error.message);
-                } else {
+                const { error } = await supabaseClient.from('leads').insert([newLead]);
+                if (error) alert('Gagal menambah lead: ' + error.message);
+                else {
                     alert('Lead berhasil ditambahkan!');
                     closeModal();
                     fetchLeads();
@@ -1158,22 +1261,18 @@
             });
         }
 
-        // 10. Update Status Lead via Select
         async function updateLeadStatus(leadId, newStatus) {
-            const { error } = await supabaseClient
-                .from('leads')
-                .update({ lead_status: newStatus })
-                .eq('id', leadId);
-
-            if (error) {
-                alert("Gagal memperbarui status: " + error.message);
-            } else {
-                fetchLeads();
-            }
+            const { error } = await supabaseClient.from('leads').update({ lead_status: newStatus }).eq('id', leadId);
+            if (error) alert("Gagal memperbarui status: " + error.message);
+            else fetchLeads();
         }
 
-        // 11. Export CSV
         function exportToCSV() {
+            if (!['admin', 'super_admin', 'manager'].includes(currentUserProfile.role)) {
+                alert("Akses ditolak! Hanya Admin/Manager yang dapat mendownload data.");
+                return;
+            }
+
             if (!allLeads || allLeads.length === 0) {
                 alert("Tidak ada data lead untuk di-export!");
                 return;
@@ -1201,23 +1300,14 @@
             document.body.removeChild(link);
         }
 
-        // 12. Hapus Lead
         async function deleteLead(leadId) {
             if (confirm("Apakah lo yakin ingin menghapus lead ini?")) {
-                const { error } = await supabaseClient
-                    .from('leads')
-                    .delete()
-                    .eq('id', leadId);
-
-                if (error) {
-                    alert("Gagal menghapus lead: " + error.message);
-                } else {
-                    fetchLeads();
-                }
+                const { error } = await supabaseClient.from('leads').delete().eq('id', leadId);
+                if (error) alert("Gagal menghapus lead: " + error.message);
+                else fetchLeads();
             }
         }
 
-        // 13. Logout
         async function logout() {
             await supabaseClient.auth.signOut();
             window.location.href = "index.html";
