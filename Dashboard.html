@@ -1066,23 +1066,6 @@
         mobileToggle.addEventListener('click', () => {
             sidebar.classList.toggle('active');
         });
-
-        // 1. Line Chart Overall Sales
-        const ctx = document.getElementById('myChart')?.getContext('2d');
-if (ctx) {
-    // Kodingan chart
-}
-        new Chart(ctxLine, {
-            type: 'line',
-            data: {
-                labels: ['DEC 2', 'DEC 3', 'DEC 4', 'DEC 5', 'DEC 6', 'DEC 7', 'DEC 8'],
-                datasets: [{
-                    data: [25000, 32000, 45000, 74082, 38000, 42000, 50000],
-                    borderColor: '#4f46e5',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: false
-                }]
             },
             options: {
                 plugins: { legend: { display: false } },
