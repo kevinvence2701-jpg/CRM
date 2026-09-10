@@ -737,18 +737,18 @@
                 <div class="table-responsive" style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
                         <thead>
-    <tr style="border-bottom: 1px solid #e5e7eb; text-align: left;">
-        <th style="padding: 12px; width: 40px;">
+    <tr style="border-bottom: 2px solid #f3f4f6; color: #6b7280; font-size: 11px; text-transform: uppercase;">
+        <th style="padding: 12px; text-align: center; width: 40px;">
             <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)">
         </th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Nama Lengkap</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Email</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">No. HP</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Sumber</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Penanggung Jawab</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Status</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Catatan</th>
-        <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 11px; text-transform: uppercase;">Aksi</th>
+        <th style="padding: 12px;">NAMA LENGKAP</th>
+        <th style="padding: 12px;">NO. HP</th>
+        <th style="padding: 12px;">SUMBER</th>
+        <th style="padding: 12px;">PENANGGUNG JAWAB</th>
+        <th style="padding: 12px;">STATUS</th>
+        <th style="padding: 12px;">NEXT FOLLOW-UP</th>
+        <th style="padding: 12px;">CATATAN</th>
+        <th style="padding: 12px;">AKSI</th>
     </tr>
 </thead>
                         <tbody id="leads-table-body">
@@ -1328,6 +1328,7 @@ function updateDashboardStats(leads) {
 
         // 2. Timpa Fungsi renderLeadsTable dengan Slice Data
         // 2. Timpa Fungsi renderLeadsTable dengan Slice Data & Next Follow-Up Badge
+        // 2. Timpa Fungsi renderLeadsTable dengan Fix Tombol Aksi
         function renderLeadsTable(leadsToRender) {
             const tableBody = document.getElementById("leads-table-body");
             if (!tableBody) return;
@@ -1335,7 +1336,7 @@ function updateDashboardStats(leads) {
             const totalItems = leadsToRender.length;
 
             if (totalItems === 0) {
-                tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#6b7280; padding:24px;">Tidak ada data lead yang cocok.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#6b7280; padding:24px;">Tidak ada data lead yang cocok.</td></tr>`;
                 updatePaginationControls(0, 0, 0, 1);
                 return;
             }
@@ -1356,13 +1357,13 @@ function updateDashboardStats(leads) {
                 const safePhone = (lead.phone || '').replace(/'/g, "\\'");
                 const safeSource = (lead.source || '').replace(/'/g, "\\'");
                 const safeNotes = (lead.notes || '').replace(/'/g, "\\'");
-                const safeNotesTitle = (lead.notes || 'Belum ada catatan').replace(/"/g, '&quot;');
+                const safeNextFollowup = lead.next_followup || '';
 
                 // Cari Nama Penanggung Jawab
                 const assignedUser = teamMembers.find(m => m.id === lead.assigned_to);
                 const assigneeName = assignedUser ? (assignedUser.full_name || assignedUser.id) : 'Gudang Data';
 
-                // Status Dropdown Color & Logic
+                // Status Dropdown Color
                 const statusColors = {
                     'New': '#3b82f6',
                     'Contacted': '#8b5cf6',
@@ -1373,20 +1374,17 @@ function updateDashboardStats(leads) {
                 };
                 const currentColor = statusColors[lead.lead_status] || '#6b7280';
 
-                // 🔔 BADGE LOGIC UNTUK NEXT FOLLOW-UP
+                // BADGE NEXT FOLLOW-UP
                 let followupBadge = '<span style="color: #9ca3af; font-size: 12px;">-</span>';
                 if (lead.next_followup) {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const targetDateStr = lead.next_followup;
 
                     if (targetDateStr < todayStr && !['Deal', 'Lost'].includes(lead.lead_status)) {
-                        // Terlewat (Merah)
                         followupBadge = `<span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">⚠️ ${targetDateStr} (Lewat)</span>`;
                     } else if (targetDateStr === todayStr && !['Deal', 'Lost'].includes(lead.lead_status)) {
-                        // Hari Ini (Kuning)
                         followupBadge = `<span style="background: #fef3c7; color: #d97706; border: 1px solid #fde68a; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">🔔 Hari Ini</span>`;
                     } else {
-                        // Jadwal Mendatang (Abu-abu)
                         followupBadge = `<span style="background: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">📅 ${targetDateStr}</span>`;
                     }
                 }
@@ -1429,14 +1427,14 @@ function updateDashboardStats(leads) {
                         <td style="padding: 14px 12px;">
                             ${followupBadge}
                         </td>
-                        <td style="padding: 14px 12px; font-size: 13px; color: #4b5563; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNotesTitle}">
+                        <td style="padding: 14px 12px; font-size: 13px; color: #4b5563; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeNotes}">
                             ${lead.notes || '-'}
                         </td>
                         <td style="padding: 14px 12px;">
                             <div style="display: flex; gap: 6px;">
-                                <button onclick="openLogsModal('${lead.id}', '${safeName}')" style="background: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">📑 Riwayat</button>
-                                <button onclick="openEditLeadModal('${lead.id}', '${safeName}', '${safeEmail}', '${safePhone}', '${safeSource}', '${safeNotes}', '${lead.next_followup || ''}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Edit</button>
-                                ${isAdminOrManager ? `<button onclick="deleteLead('${lead.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>` : ''}
+                                <button type="button" onclick="openLogsModal('${lead.id}', '${safeName}')" style="background: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">📑 Riwayat</button>
+                                <button type="button" onclick="openEditLeadModal('${lead.id}', '${safeName}', '${safeEmail}', '${safePhone}', '${safeSource}', '${safeNotes}', '${safeNextFollowup}')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Edit</button>
+                                ${isAdminOrManager ? `<button type="button" onclick="deleteLead('${lead.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Hapus</button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -1552,6 +1550,7 @@ function updateDashboardStats(leads) {
             const message = `Halo Kak ${name || ''}, terima kasih sudah menghubungi kami. Saya ingin follow-up terkait kebutuhan Anda. Ada yang bisa dibantu?`;
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
+
 
         // 1. Tambahkan 'nextFollowup' di ujung parameter
 function openEditLeadModal(id, name, email, phone, source, notes, nextFollowup) {
@@ -2140,6 +2139,46 @@ async function processCSVImport() {
 
             tbody.innerHTML = html;
         }
+
+        // 1. Fungsi Edit Lead (Aman dari Bug Null)
+function openEditLeadModal(id, name, email, phone, source, notes, nextFollowup) {
+    editingLeadId = id;
+
+    // Helper aman untuk set value tanpa bikin error kalau ID tidak ketemu
+    const setVal = (elementId, value) => {
+        const el = document.getElementById(elementId);
+        if (el) el.value = value || '';
+    };
+
+    // Coba set nilai ke ID yang mungkin dipakai di HTML
+    setVal('leadName', name);
+    setVal('leadEmail', email);
+    setVal('leadPhone', phone);
+    setVal('leadSource', source);
+    setVal('leadNotes', notes);
+    
+    // Cek ID input tanggal follow-up
+    setVal('leadNextFollowupInput', nextFollowup);
+    setVal('leadNextFollowup', nextFollowup);
+
+    // Ubah Judul Modal jika ada
+    const title = document.querySelector('#addLeadModal h3');
+    if (title) title.innerText = 'Edit Data Lead';
+
+    // Tampilkan Modal
+    const modal = document.getElementById('addLeadModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+// 2. Fungsi Logs / Riwayat
+function openLogsModal(leadId, leadName) {
+    const logModal = document.getElementById('logModal');
+    if (logModal) {
+        logModal.style.display = 'flex';
+    } else {
+        alert('Riwayat untuk: ' + (leadName || 'Lead Ini'));
+    }
+}
 
         
     </script>
