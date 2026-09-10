@@ -727,6 +727,30 @@
                     </table>
                 </div>
 
+                <!-- Kontrol Pagination -->
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 4px; font-size: 13px; color: #6b7280; flex-wrap: wrap; gap: 12px; border-top: 1px solid #f3f4f6;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span>Tampilkan:</span>
+        <select id="pageSizeSelect" onchange="changePageSize(this.value)" style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 13px; cursor: pointer; outline: none;">
+            <option value="10" selected>10 data</option>
+            <option value="25">25 data</option>
+            <option value="50">50 data</option>
+            <option value="100">100 data</option>
+        </select>
+        <span id="paginationInfo" style="font-weight: 500; color: #374151;">Menampilkan 0 - 0 dari 0 data</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 6px;">
+        <button id="btnPrevPage" onclick="changePage(-1)" style="padding: 6px 12px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; color: #374151; transition: all 0.2s;" disabled>
+            ◀ Sebelum
+        </button>
+        <span id="pageIndicator" style="font-weight: 700; color: #111827; padding: 0 8px;">Hal 1 dari 1</span>
+        <button id="btnNextPage" onclick="changePage(1)" style="padding: 6px 12px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; color: #374151; transition: all 0.2s;" disabled>
+            Lanjut ▶
+        </button>
+    </div>
+</div>
+
             </div>
             <!-- Modal Tambah Lead Baru -->
 <div id="addLeadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 9999;">
@@ -1169,19 +1193,37 @@ function toggleSelectAll(masterCheckbox) {
     updateSelectedCount();
 }
 
-        // 6. Render Data Ke Tabel HTML dengan Pill Badges
+        // 1. Variabel Global Pagination
+        let currentPage = 1;
+        let pageSize = 10;
+
+        // 2. Timpa Fungsi renderLeadsTable dengan Slice Data
         function renderLeadsTable(leadsToRender) {
             const tableBody = document.getElementById("leads-table-body");
             if (!tableBody) return;
 
-            if (leadsToRender.length === 0) {
+            const totalItems = leadsToRender.length;
+
+            if (totalItems === 0) {
                 tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#6b7280; padding:24px;">Tidak ada data lead yang cocok.</td></tr>`;
+                updatePaginationControls(0, 0, 0, 1);
                 return;
             }
 
+            // Hitung Limit Halaman
+            const totalPages = Math.ceil(totalItems / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalItems);
+            
+            // Slice data sesuai halaman yang aktif
+            const paginatedLeads = leadsToRender.slice(startIndex, endIndex);
+
             const isAdminOrManager = ['admin', 'super_admin', 'manager'].includes(currentUserProfile.role);
 
-            tableBody.innerHTML = leadsToRender.map(lead => {
+            tableBody.innerHTML = paginatedLeads.map(lead => {
                 const safeName = (lead.full_name || '').replace(/'/g, "\\'");
                 const safePhone = lead.phone || '';
                 
@@ -1229,6 +1271,50 @@ function toggleSelectAll(masterCheckbox) {
                 </tr>
                 `;
             }).join('');
+
+            // Update Status Tampilan Pagination
+            updatePaginationControls(startIndex, endIndex, totalItems, totalPages);
+        }
+
+        // 3. Helper Update UI Tombol & Teks Navigasi
+        function updatePaginationControls(startIndex, endIndex, totalItems, totalPages) {
+            const infoEl = document.getElementById("paginationInfo");
+            const pageIndEl = document.getElementById("pageIndicator");
+            const btnPrev = document.getElementById("btnPrevPage");
+            const btnNext = document.getElementById("btnNextPage");
+
+            if (infoEl) {
+                infoEl.innerText = totalItems > 0 
+                    ? `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalItems} data`
+                    : `Menampilkan 0 - 0 dari 0 data`;
+            }
+
+            if (pageIndEl) pageIndEl.innerText = `Hal ${currentPage} dari ${totalPages || 1}`;
+
+            if (btnPrev) {
+                btnPrev.disabled = currentPage <= 1;
+                btnPrev.style.opacity = currentPage <= 1 ? "0.4" : "1";
+                btnPrev.style.cursor = currentPage <= 1 ? "not-allowed" : "pointer";
+            }
+
+            if (btnNext) {
+                btnNext.disabled = currentPage >= totalPages || totalPages === 0;
+                btnNext.style.opacity = (currentPage >= totalPages || totalPages === 0) ? "0.4" : "1";
+                btnNext.style.cursor = (currentPage >= totalPages || totalPages === 0) ? "not-allowed" : "pointer";
+            }
+        }
+
+        // 4. Handler Perpindahan Halaman
+        function changePage(direction) {
+            currentPage += direction;
+            renderLeadsTable(filteredLeads || allLeads);
+        }
+
+        // 5. Handler Perubahan Jumlah Data per Halaman
+        function changePageSize(newSize) {
+            pageSize = parseInt(newSize, 10);
+            currentPage = 1;
+            renderLeadsTable(filteredLeads || allLeads);
         }
 
         // 7. Logika Checkbox & Assign Leads
