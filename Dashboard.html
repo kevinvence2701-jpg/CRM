@@ -1057,41 +1057,6 @@
     </div>
 </>
 
-// <!-- JAVASCRIPT CHARTS & TOGGLE RESPONSIVE -->
-<script>
-    // Toggle Sidebar Mobile
-    const mobileToggle = document.getElementById('mobileToggle');
-    const sidebar = document.getElementById('sidebar');
-
-    if (mobileToggle && sidebar) {
-        mobileToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-        });
-    }
-
-    // Amankan Chart Initialization agar tidak ada yang terputus
-    try {
-        const donutCanvas = document.getElementById('sourceDonutChart');
-        if (donutCanvas) {
-            new Chart(donutCanvas.getContext('2d'), {
-                type: 'doughnut',
-                data: { datasets: [{ data: [48, 33, 19], backgroundColor: ['#4f46e5', '#3b82f6', '#cbd5e1'] }] },
-                options: { cutout: '75%', plugins: { legend: { display: false } } }
-            });
-        }
-
-        const barCanvas = document.getElementById('visitorsBarChart');
-        if (barCanvas) {
-            new Chart(barCanvas.getContext('2d'), {
-                type: 'bar',
-                data: { labels: ['1','2','3','4','5','6','7'], datasets: [{ data: [40, 60, 35, 90, 55, 70, 45] }] },
-                options: { plugins: { legend: { display: false } } }
-            });
-        }
-    } catch (e) {
-        console.warn('Chart bypass:', e);
-    }
-
     <!-- 1. Panggil Library Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1128,7 +1093,7 @@
 
             currentUserProfile = profile || { id: currentUser.id, role: 'sales' };
 
-            // ⚡ PROSES UPDATE PROFIL HEADER DINAMIS ⚡
+            // PROSES UPDATE PROFIL HEADER DINAMIS
             const nameEl = document.getElementById('headerUserName');
             const roleEl = document.getElementById('headerUserRole');
             const avatarEl = document.getElementById('headerUserAvatar');
