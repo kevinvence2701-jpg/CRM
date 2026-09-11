@@ -495,58 +495,36 @@
             }
         }
 
-        @media (max-width: 768px) {
+        /* --- FIX RESPONSIF MOBILE & HAMBURGER SIDEBAR UNTUK SEMUA HALAMAN --- */
+@media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 1000;
         box-shadow: none;
     }
 
     .sidebar.active {
         transform: translateX(0) !important;
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.2) !important;
     }
 
-    .main-wrapper {
+    .main-wrapper, .main-content {
         margin-left: 0 !important;
+        padding: 16px !important;
+        width: 100% !important;
     }
 
-    .mobile-toggle {
+    /* Pastikan tombol toggle muncul di semua halaman mobile */
+    .mobile-toggle, .topbar .mobile-toggle {
         display: block !important;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--text-main);
     }
-        .leads-container {
-            padding: 16px !important;
-            margin: 10px !important;
-        }
-
-        .leads-header {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 16px !important;
-        }
-
-        .leads-header button {
-            width: 100% !important;
-            text-align: center;
-        }
-
-        /* Modal Form di HP */
-        #addLeadModal > div {
-            width: 90% !important;
-            padding: 16px !important;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        /* Pembungkus Tabel agar bisa di-scroll ke samping di HP */
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .table-responsive table {
-            min-width: 650px; /* Menjaga struktur tabel tidak tergepet */
-        }
-    }
+}
 </style>
     </style>
 </head>
