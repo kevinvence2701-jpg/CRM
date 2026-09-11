@@ -495,9 +495,24 @@
             }
         }
 
-        <style>
-    /* Responsive Styling untuk HP / Tablet */
-    @media (max-width: 768px) {
+        @media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        box-shadow: none;
+    }
+
+    .sidebar.active {
+        transform: translateX(0) !important;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .main-wrapper {
+        margin-left: 0 !important;
+    }
+
+    .mobile-toggle {
+        display: block !important;
+    }
         .leads-container {
             padding: 16px !important;
             margin: 10px !important;
@@ -572,9 +587,10 @@
     <div class="main-wrapper">
         <!-- TOP HEADER -->
         <header class="top-header">
-            <button class="mobile-toggle" id="mobileToggle">
-                <i class="fa-solid fa-bars"></i>
-            </button>
+    <!-- Tambahkan id="mobileToggle" di sini -->
+    <button class="mobile-toggle" id="mobileToggle">
+        <i class="fa-solid fa-bars"></i>
+    </button>
 
             <div class="search-bar">
                 <i class="fa-solid fa-magnifying-glass" style="color: #94a3b8;"></i>
@@ -2391,7 +2407,19 @@ window.saveLeadLog = async function() {
         console.error('Gagal simpan log:', err);
         alert('Gagal menyimpan ke database: ' + err.message);
     }
-};     
+};
+
+// Toggle Sidebar Mobile
+document.addEventListener("DOMContentLoaded", function() {
+    const mobileToggle = document.getElementById('mobileToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    if (mobileToggle && sidebar) {
+        mobileToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+    }
+});
 </script>
 </body>
 </html>
